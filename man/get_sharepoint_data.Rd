@@ -4,7 +4,7 @@
 \alias{get_sharepoint_data}
 \title{Funktion für den Zugriff des aktuellsten Files aus einem Ordner im Sharepoint}
 \usage{
-get_sharepoint_data(folder_path, file_name, file_type, msgraph_key)
+get_sharepoint_data(folder_path, file_name, file_type, msgraph_key, tmp_folder)
 }
 \arguments{
 \item{folder_path}{A character with the path in the sharepoint which contains the file.}

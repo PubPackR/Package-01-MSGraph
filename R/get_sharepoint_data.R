@@ -49,7 +49,7 @@ get_sharepoint_data <- function(folder_path, file_name, file_type, msgraph_key,t
       file_content <- content(httr::GET(url_file_content, httr::add_headers(header)), as = "raw")
 
       # Create temporary file
-      temp_file_path <- tempfile(pattern = sub("\\..*", "_", tmpdir = tmp_tmp_folder,file_info[["name"]]), fileext = paste0(".", file_type))
+      temp_file_path <- tempfile(pattern = sub("\\..*", "_", file_info[["name"]]),tmpdir = tmp_tmp_folder, fileext = paste0(".", file_type))
       writeBin(file_content, temp_file_path)
 
       # Set last modified date of temporary file to the same date as the sharepoint file
