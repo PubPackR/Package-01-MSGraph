@@ -14,7 +14,7 @@
 #' @importFrom httr content
 #' @importFrom Billomatics read_most_recent_data
 #' @export
-get_sharepoint_data <- function(folder_path, file_name, file_type, msgraph_key) {
+get_sharepoint_data <- function(folder_path, file_name, file_type, msgraph_key,tmp_folder) {
   ## authorize ms graph in sharepoint
 
   tenant_id <- "f34ad13c-3f44-4e15-b70c-cadfbdb6bfb8"
@@ -22,6 +22,16 @@ get_sharepoint_data <- function(folder_path, file_name, file_type, msgraph_key) 
   studyflix_cloud_id <- "438c7fc9-e4c7-4cdd-a486-61319b1dea2b"
 
   ms_token <- MSGraph::authorize_graph(tenant_id, client_id, client_secret = msgraph_key)
+
+  ## create the tmp_folder
+  if(!dir.exists(tmp_folder)) {
+    dir.create(tmp_folder,recursive = TRUE)
+  }
+
+  ## to take care of the tmp folder being accessible by the user we create it within a given tmp folder
+  tmp_tmp_folder <- paste0(tmp_folder,"tmp",as.integer(runif(1,1,10000)))
+  dir.create(tmp_tmp_folder)
+
 
   # get the folder
   folder_item_id <- MSGraph::get_DriveItem_Info(folder_path, ms_token)
@@ -39,7 +49,7 @@ get_sharepoint_data <- function(folder_path, file_name, file_type, msgraph_key) 
       file_content <- content(httr::GET(url_file_content, httr::add_headers(header)), as = "raw")
 
       # Create temporary file
-      temp_file_path <- tempfile(pattern = sub("\\..*", "_", file_info[["name"]]), fileext = paste0(".", file_type))
+      temp_file_path <- tempfile(pattern = sub("\\..*", "_", tmpdir = tmp_tmp_folder,file_info[["name"]]), fileext = paste0(".", file_type))
       writeBin(file_content, temp_file_path)
 
       # Set last modified date of temporary file to the same date as the sharepoint file
@@ -51,13 +61,13 @@ get_sharepoint_data <- function(folder_path, file_name, file_type, msgraph_key) 
   }
 
   # Get temporary directory path
-  temp_folder_path <- tempdir()
+  temp_folder_path <- tmp_tmp_folder
 
   # Read most recent file
   file <- Billomatics::read_most_recent_data(temp_folder_path, filetyp = file_type, name_starts_with = file_name)
 
   # Delete temporary directory
-  unlink(temp_folder_path, recursive = TRUE)
+  unlink(tmp_tmp_folder, recursive = TRUE)
 
   return(file)
 
