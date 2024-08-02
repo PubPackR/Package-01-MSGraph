@@ -14,7 +14,7 @@
 #' @importFrom httr content
 #' @importFrom Billomatics read_most_recent_data
 #' @export
-get_sharepoint_data <- function(folder_path, file_name, file_type, msgraph_key,tmp_folder) {
+get_sharepoint_data <- function(folder_path, file_name, file_type, msgraph_key,tmp_folder,sheet = 1) {
   ## authorize ms graph in sharepoint
 
   tenant_id <- "f34ad13c-3f44-4e15-b70c-cadfbdb6bfb8"
@@ -52,8 +52,11 @@ get_sharepoint_data <- function(folder_path, file_name, file_type, msgraph_key,t
       temp_file_path <- tempfile(pattern = sub("\\..*", "_", file_info[["name"]]),tmpdir = tmp_tmp_folder, fileext = paste0(".", file_type))
       writeBin(file_content, temp_file_path)
 
+      ## so that we keep a date time object, this has to be explicit
+      modified_DateTime <- lubridate::as_datetime(file_info[["fileSystemInfo"]][["lastModifiedDateTime"]])
+
       # Set last modified date of temporary file to the same date as the sharepoint file
-      Sys.setFileTime(temp_file_path, file_info[["fileSystemInfo"]][["lastModifiedDateTime"]])
+      Sys.setFileTime(temp_file_path, modified_DateTime)
 
     }
   } else {
@@ -64,7 +67,7 @@ get_sharepoint_data <- function(folder_path, file_name, file_type, msgraph_key,t
   temp_folder_path <- tmp_tmp_folder
 
   # Read most recent file
-  file <- Billomatics::read_most_recent_data(temp_folder_path, filetyp = file_type, name_starts_with = file_name)
+  file <- Billomatics::read_most_recent_data(temp_folder_path, filetyp = file_type, name_starts_with = file_name, sheet = sheet)
 
   # Delete temporary directory
   unlink(tmp_tmp_folder, recursive = TRUE)
