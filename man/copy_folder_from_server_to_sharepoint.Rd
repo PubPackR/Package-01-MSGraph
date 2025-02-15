@@ -2,20 +2,35 @@
 % Please edit documentation in R/copy_folder_from_server_to_sharepoint.R
 \name{copy_folder_from_server_to_sharepoint}
 \alias{copy_folder_from_server_to_sharepoint}
-\title{Diese Funktion kopiert einen Ordner (hier von Flowforce) und erstellt ihn in einem Sharepoint-Ordner}
+\title{Upload Files to SharePoint}
 \usage{
-copy_folder_from_server_to_sharepoint(server_path, folder_item_id, token)
+copy_folder_from_server_to_sharepoint(
+  tenant_id,
+  client_id,
+  studyflix_cloud_id,
+  key_msgraph,
+  path_on_sharepoint,
+  path_to_folder,
+  cleanup = FALSE
+)
 }
 \arguments{
-\item{server_path}{Der lokale Pfad zum Ordner}
+\item{tenant_id}{Character. Microsoft Graph API tenant ID}
 
-\item{folder_item_id}{Die Item_Id des Ordners in den der Ordner kopiert werden soll}
+\item{client_id}{Character. Microsoft Graph API client ID}
 
-\item{token}{Der Zugriffstoken für MS_Graph}
-}
-\value{
-Diese Funktion returnt nichts
+\item{studyflix_cloud_id}{Character. Microsoft Graph API cloud ID}
+
+\item{key_msgraph}{Character. Microsoft Graph API client secret}
+
+\item{path_on_sharepoint}{Character. SharePoint target path}
+
+\item{path_to_folder}{Character. Local path containing files/folder}
+
+\item{cleanup}{Logical. Delete local files and subfolders after successful upload}
 }
 \description{
-Diese Funktion kopiert einen Ordner (hier von Flowforce) und erstellt ihn in einem Sharepoint-Ordner
+This function uploads files from a specified local folder to a SharePoint directory
+The function does not retain the folder structure
+If a file already exists in the target directory, it will be overwritten
 }

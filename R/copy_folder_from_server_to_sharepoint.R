@@ -1,60 +1,52 @@
-#' Diese Funktion kopiert einen Ordner (hier von Flowforce) und erstellt ihn in einem Sharepoint-Ordner
+#' Upload Files to SharePoint
 #'
-#' @param server_path Der lokale Pfad zum Ordner
-#' @param folder_item_id Die Item_Id des Ordners in den der Ordner kopiert werden soll
-#' @param token Der Zugriffstoken für MS_Graph
+#' This function uploads files from a specified local folder to a SharePoint directory
+#' The function does not retain the folder structure
+#' If a file already exists in the target directory, it will be overwritten
 #'
-#' @return Diese Funktion returnt nichts
+#' @param tenant_id Character. Microsoft Graph API tenant ID
+#' @param client_id Character. Microsoft Graph API client ID
+#' @param studyflix_cloud_id Character. Microsoft Graph API cloud ID
+#' @param key_msgraph Character. Microsoft Graph API client secret
+#' @param path_on_sharepoint Character. SharePoint target path
+#' @param path_to_folder Character. Local path containing files/folder
+#' @param cleanup Logical. Delete local files and subfolders after successful upload
+#'
+#' @return NULL
 #' @export
-#'
-#' @examples
-#' @importFrom httr POST
-#' @importFrom httr add_headers
-#' @importFrom httr content
 #' @importFrom httr PUT
-copy_folder_from_server_to_sharepoint <- function(server_path, folder_item_id, token){
-  studyflix_cloud_id <- "438c7fc9-e4c7-4cdd-a486-61319b1dea2b"
+#' @importFrom httr add_headers
+#' @importFrom httr status_code
+copy_folder_from_server_to_sharepoint <- function(tenant_id, client_id, studyflix_cloud_id, key_msgraph, path_on_sharepoint, path_to_folder, cleanup = FALSE) {
+  ## ----- Auth -----
+  ms_token <- MSGraph::authorize_graph(client_id = client_id, tenant_id = tenant_id, client_secret = key_msgraph)
+  folder_id <- MSGraph::get_DriveItem_Info(path_on_sharepoint, token = ms_token)
 
-  #1. Ordner Namen ziehen
-  folder_name <- unlist(strsplit(server_path, "/"))[length(strsplit(server_path, "/")[[1]])]
-  print(folder_name)
+  ## ----- Upload Files to Sharepoint -----
+  all_files <- list.files(path_to_folder, full.names = TRUE, recursive = TRUE)
+  print(paste("Uploading", length(all_files), "files to Sharepoint..."))
 
-  #2. Neuen Ordner in Sharepoint erstellen
-  url <- paste0("https://graph.microsoft.com/v1.0/groups/{", studyflix_cloud_id, "}/drive/items/", folder_item_id, "/children")
-  header <- c("authorization" = paste("Bearer",token), "content-type" = "Application/Json")
-  body <- paste0('{
-  "name": "', folder_name,
-  '","folder": { },
-  "@microsoft.graph.conflictBehavior": "rename"
-  }')
+  for (file in all_files) {
+    filename <- basename(file)
+    file_content <- readBin(file, what = "raw", n=file.size(file))
 
-  new_folder_item_id <- content(POST(url, add_headers(header), body = body))[["id"]]
-  print(new_folder_item_id)
+    url <- paste0("https://graph.microsoft.com/v1.0/groups/{", studyflix_cloud_id, "}/drive/items/", folder_id, ":/", filename, ":/content")
+    header <- c("authorization" = paste("Bearer",ms_token), "content-type" = "octet/stream")
+    response <- httr::PUT(url, httr::add_headers(header), body = file_content)
 
-  #3. Dateien des Ordners abfragen
-  all_files <- list.files(server_path, full.names = TRUE)
-
-  if(length(all_files)>0){
-    print("Ordner nicht leer")
-    for(i in 1:length(all_files)){
-      #info über datei holen
-      if(file.info(all_files[i])[["isdir"]]){
-        print(paste("datei", i, "ist ein ordner"))
-        #neuen pfad zu unterordner erstellen
-        new_folder_name <- unlist(strsplit(all_files[i], "/"))[length(strsplit(all_files[i], "/")[[1]])]
-        new_server_path <- paste0(server_path, new_folder_name, "/")
-        copy_folder_from_server_to_sharepoint(server_path = new_server_path, folder_item_id = new_folder_item_id, token)
-      }else{
-        print(paste("datei", i, "ist kein ordner"))
-        file_content <- readBin(all_files[i], what = "raw", n = file.size(all_files[i]))
-        #binärdaten uploaden
-        url <- paste0("https://graph.microsoft.com/v1.0/groups/{", studyflix_cloud_id, "}/drive/items/", new_folder_item_id, ":/", gsub(".*//", "", all_files[i]), ":/content")
-        header <- c("authorization" = paste("Bearer",token), "content-type" = "octet/stream")
-        response <- PUT(url, add_headers(header), body = file_content)
-      }
+    # Error handling
+    if (!(httr::status_code(response) %in% c(200, 201))) {
+      error_message <- paste("File transfer failed. Status code:", httr::status_code(response))
+      stop(error_message)
     }
-  }else{
-    print("dieser ordner ist leer")
   }
+  print("Files uploaded successfully")
 
+  ## ----- CleanUp -----
+  if (cleanup) {
+    # Remove all the files from the folder after uploading
+    unlink(path_to_folder, recursive = TRUE, force = TRUE)
+    dir.create(path_to_folder)
+    print("Folder cleaned successfully")
+  }
 }
