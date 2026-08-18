@@ -16,11 +16,16 @@ download_sharepoint_folder_delegated <- function(folder_path, auth, dest_dir,
   drive_id <- msgraph_delegated_drive_id(auth)
   folder_id <- get_DriveItem_Info_delegated(folder_path, auth)
 
-  children <- msgraph_delegated_get(
+  page <- msgraph_delegated_get(
     paste0("https://graph.microsoft.com/v1.0/drives/", drive_id,
            "/items/", folder_id, "/children"), auth)
+  items <- page[["value"]]
+  while (!is.null(page[["@odata.nextLink"]])) {
+    page <- msgraph_delegated_get(page[["@odata.nextLink"]], auth)
+    items <- c(items, page[["value"]])
+  }
 
-  if (length(children[["value"]]) == 0) {
+  if (length(items) == 0) {
     message("Ordner ist leer: ", folder_path)
     return(character(0))
   }
@@ -29,7 +34,7 @@ download_sharepoint_folder_delegated <- function(folder_path, auth, dest_dir,
   header <- httr::add_headers(authorization = paste("Bearer", token))
 
   paths <- character(0)
-  for (child in children[["value"]]) {
+  for (child in items) {
     response <- httr::GET(
       paste0("https://graph.microsoft.com/v1.0/drives/", drive_id,
              "/items/", child[["id"]], "/content"), header)
