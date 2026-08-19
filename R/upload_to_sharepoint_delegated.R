@@ -22,7 +22,7 @@ upload_to_sharepoint_delegated <- function(local_files, sharepoint_folder, auth)
       paste0("https://graph.microsoft.com/v1.0/drives/", drive_id,
              "/items/", folder_id, ":/", utils::URLencode(filename), ":/content"),
       httr::add_headers(authorization = paste("Bearer", token),
-                        "content-type" = "octet/stream"),
+                        "content-type" = "application/octet-stream"),
       body = file_content)
     if (!(response$status_code %in% c(200, 201))) {
       stop("Upload fehlgeschlagen (HTTP ", response$status_code, "): ",
