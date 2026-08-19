@@ -35,6 +35,8 @@ download_sharepoint_folder_delegated <- function(folder_path, auth, dest_dir,
 
   paths <- character(0)
   for (child in items) {
+    ## Ordner-Kinder ueberspringen - /content auf einen Ordner liefert einen Fehlerstatus
+    if (is.null(child[["file"]])) next
     response <- httr::GET(
       paste0("https://graph.microsoft.com/v1.0/drives/", drive_id,
              "/items/", child[["id"]], "/content"), header)
